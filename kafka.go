@@ -72,6 +72,7 @@ func (r request) Write(w io.Writer) error {
 type message struct {
 	Length int32
 	Magic  byte
+    Attr   byte
 	Crc    int32
 }
 
@@ -112,6 +113,7 @@ func OpenConsumer(addr, topic string, partition int32, offset int64, options Con
 			return nil, err
 		}
 
+        //fmt.Printf("%v\n", offsets)
 		c.Seek(offsets[0])
 	}
 
@@ -167,16 +169,17 @@ func (r *Consumer) Read(buf []byte) (int, error) {
 		return 0, err
 	}
 
+    //fmt.Printf("msg %v\n", msg)
 	if len(buf) < int(msg.Length-5) {
 		return 9, io.ErrShortBuffer
 	}
 
-	n, err := r.co.ReadBuffer.Read(buf[:msg.Length-5])
+	n, err := r.co.ReadBuffer.Read(buf[:msg.Length-6])
 	if err != nil {
 		return 9 + n, err
 	}
 
-	if crc32.ChecksumIEEE(buf[:msg.Length-5]) != uint32(msg.Crc) {
+	if crc32.ChecksumIEEE(buf[:msg.Length-6]) != uint32(msg.Crc) {
 		return 9 + n, ErrCrcMismatch
 	}
 
